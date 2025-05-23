@@ -12,7 +12,7 @@ class KnightMovement implements MovementStrategy
         [-1, -2], [-2, -1], [-2, 1], [-1, 2]
     ];
 
-    public function getAvailableMoves(Square $from): array
+    public function calculateAvailableMoves(Square $from): array
     {
         $moves = [];
 
