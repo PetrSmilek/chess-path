@@ -7,20 +7,27 @@ use ChessPath\Movement\KnightMovement;
 use ChessPath\Movement\BishopMovement;
 use ChessPath\PathFinder\PathFinder;
 
-$start = new Square(5, 0);
-$end = new Square(0, 7);
-
-$movement = new KnightMovement();
-$pathFinder = new PathFinder();
-
-$path = $pathFinder->shortestPath($start, $end, $movement);
-
-if (empty($path)) {
-    echo "No path found.\n";
-} else {
-    echo "Shortest path from $start to $end:\n";
+function printPath(array $path, Square $start, Square $end, string $pieceName): void {
+    if (empty($path)) {
+        echo "No path found for $pieceName." . PHP_EOL;
+        return;
+    }
+    echo "Shortest path for $pieceName from $start to $end:" . PHP_EOL;
     foreach ($path as $square) {
         echo $square . ' ';
     }
-    echo "\n";
+    echo PHP_EOL;
 }
+
+$start = new Square(1, 2);
+$end = new Square(3, 4);
+
+$movementK = new KnightMovement();
+$movementB = new BishopMovement();
+$pathFinder = new PathFinder();
+
+$pathK = $pathFinder->shortestPath($start, $end, $movementK);
+$pathB = $pathFinder->shortestPath($start, $end, $movementB);
+
+printPath($pathK, $start, $end, 'Knight');
+printPath($pathB, $start, $end, 'Bishop');

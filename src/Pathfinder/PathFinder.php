@@ -8,6 +8,8 @@ use ChessPath\Movement\MovementStrategy;
 class PathFinder
 {
     /**
+     * Calculates the shortest path between two squares based on the given movement strategy
+     * Uses breadth-first search (BFS) to find the shortest sequence of legal moves
      * @param Square $start
      * @param Square $end
      * @param MovementStrategy $movementStrategy
@@ -45,6 +47,14 @@ class PathFinder
         return []; // Path does not exist
     }
 
+    /**
+     * Reconstructs the path from end square to start using the predecessor map
+     *
+     * @param Square $start Starting square
+     * @param Square $end Destination square
+     * @param array<string, Square> $predecessor Map of positions to their preceding squares
+     * @return Square[] Ordered array representing the path from start to end
+     */
     private function reconstructPath(Square $start, Square $end, array $predecessor): array
     {
         $path = [$end];
@@ -58,6 +68,12 @@ class PathFinder
         return $path;
     }
 
+    /**
+     * Generates a unique hash string for a square based on its coordinates
+     *
+     * @param Square $square
+     * @return string
+     */
     private function hash(Square $square): string
     {
         return $square->getX() . ',' . $square->getY();
