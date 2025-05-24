@@ -4,10 +4,11 @@ require_once __DIR__ . '/../vendor/autoload.php';
 
 use ChessPath\Model\Square;
 use ChessPath\Movement\KnightMovement;
+use ChessPath\Movement\BishopMovement;
 use ChessPath\PathFinder\PathFinder;
 
-$start = new Square(1, 0);
-$end = new Square(2, 2);
+$start = new Square(5, 0);
+$end = new Square(0, 7);
 
 $movement = new KnightMovement();
 $pathFinder = new PathFinder();

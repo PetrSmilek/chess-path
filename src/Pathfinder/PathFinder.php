@@ -31,7 +31,7 @@ class PathFinder
 
             foreach ($movementStrategy->calculateAvailableMoves($current) as $neighbor) {
                 $hash = $this->hash($neighbor);
-                if (!$visited[$hash]) {
+                if (!isset($visited[$hash])) {
                     $visited[$hash] = true;
                     $predecessor[$hash] = $current;
                     if ($neighbor->equals($end)) {
@@ -50,7 +50,7 @@ class PathFinder
         $path = [$end];
         $current = $end;
 
-        while (!current.equals($start)) {
+        while (!$current->equals($start)) {
             $current = $predecessor[$this->hash($current)];
             array_unshift($path, $current);
         }
