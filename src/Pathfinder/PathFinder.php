@@ -1,6 +1,6 @@
 <?php
 
-namespace ChessPath\Pathfinder;
+namespace ChessPath\PathFinder;
 
 use ChessPath\Model\Square;
 use ChessPath\Movement\MovementStrategy;
