@@ -34,7 +34,19 @@ class PathFinderTest extends TestCase
 
         $path = $this->pathfinder->shortestPath($start, $end, new KnightMovement());
 
-        $this->assertNotEmpty($path);
+        $this->assertCount(4, $path); // H1 -> E3 needs 3 knight moves
+        $this->assertEquals($start, $path[0]);
+        $this->assertEquals($end, end($path));
+    }
+
+    public function testBishopTwoMoves()
+    {
+        $start = new Square(0, 0);
+        $end = new Square(2, 0);
+
+        $path = $this->pathfinder->shortestPath($start, $end, new BishopMovement());
+
+        $this->assertCount(3, $path);
         $this->assertEquals($start, $path[0]);
         $this->assertEquals($end, end($path));
     }

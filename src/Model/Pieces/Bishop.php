@@ -13,7 +13,7 @@ class Bishop implements Piece
 
     public function __construct()
     {
-        $this->movementStrtegy = new BishopMovement();
+        $this->movementStrategy = new BishopMovement();
     }
 
     public function getAvailableMoves(Square $from): array
