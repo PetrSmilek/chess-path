@@ -5,6 +5,9 @@ require_once __DIR__ . '/../vendor/autoload.php';
 use ChessPath\Model\Square;
 use ChessPath\Movement\KnightMovement;
 use ChessPath\Movement\BishopMovement;
+use ChessPath\Movement\RookMovement;
+use ChessPath\Movement\QueenMovement;
+use ChessPath\Movement\KingMovement;
 use ChessPath\PathFinder\PathFinder;
 
 function printPath(array $path, Square $start, Square $end, string $pieceName): void {
@@ -22,12 +25,16 @@ function printPath(array $path, Square $start, Square $end, string $pieceName): 
 $start = new Square(1, 2);
 $end = new Square(3, 4);
 
-$movementK = new KnightMovement();
-$movementB = new BishopMovement();
 $pathFinder = new PathFinder();
 
-$pathK = $pathFinder->shortestPath($start, $end, $movementK);
-$pathB = $pathFinder->shortestPath($start, $end, $movementB);
+$movements = [
+    'Knight' => new KnightMovement(),
+    'Bishop' => new BishopMovement(),
+    'Rook' => new RookMovement(),
+    'Queen' => new QueenMovement(),
+    'King' => new KingMovement(),
+];
 
-printPath($pathK, $start, $end, 'Knight');
-printPath($pathB, $start, $end, 'Bishop');
+foreach ($movements as $pieceName => $movement) {
+    printPath($pathFinder->shortestPath($start, $end, $movement), $start, $end, $pieceName);
+}
