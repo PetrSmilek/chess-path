@@ -3,19 +3,19 @@
 namespace ChessPath\PathFinder;
 
 use ChessPath\Model\Square;
-use ChessPath\Movement\MovementStrategy;
+use ChessPath\Model\Piece;
 
 class PathFinder
 {
     /**
-     * Calculates the shortest path between two squares based on the given movement strategy
+     * Calculates the shortest path between two squares for the given piece
      * Uses breadth-first search (BFS) to find the shortest sequence of legal moves
      * @param Square $start
      * @param Square $end
-     * @param MovementStrategy $movementStrategy
+     * @param Piece $piece
      * @return Square[] Array of squares representing the shortest path
      */
-    public function shortestPath(Square $start, Square $end, MovementStrategy $movementStrategy): array
+    public function shortestPath(Square $start, Square $end, Piece $piece): array
     {
         if ($start->equals($end)) {
             return [$start];
@@ -31,7 +31,7 @@ class PathFinder
         while (!$queue->isEmpty()) {
             $current = $queue->dequeue();
 
-            foreach ($movementStrategy->calculateAvailableMoves($current) as $neighbor) {
+            foreach ($piece->getAvailableMoves($current) as $neighbor) {
                 $hash = $this->hash($neighbor);
                 if (!isset($visited[$hash])) {
                     $visited[$hash] = true;

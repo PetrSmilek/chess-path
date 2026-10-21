@@ -13,3 +13,12 @@ A simple PHP application to find the shortest path for chess pieces (e.g., Knigh
 
 ```bash
 composer install
+## Web GUI
+
+Start the built-in PHP server and open http://localhost:8000 in a browser:
+
+```bash
+php -S localhost:8000 -t public
+```
+
+Pick a piece, click the start square and then the target square. The piece animates along the shortest path.

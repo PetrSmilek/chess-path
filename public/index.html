@@ -1,0 +1,404 @@
+<!doctype html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Chess Path Finder</title>
+<style>
+  :root {
+    --bg: #f4f1ea;
+    --panel: #ffffff;
+    --text: #2b2724;
+    --muted: #7a726a;
+    --light: #eed9b6;
+    --dark: #b58863;
+    --start: #5b8c5a;
+    --end: #c0573e;
+    --path: #2f5d8a;
+    --border: #ddd5c8;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    display: flex;
+    justify-content: center;
+    padding: 24px 16px;
+  }
+  main { width: 100%; max-width: 960px; }
+  h1 { font-size: 1.5rem; margin: 0 0 4px; }
+  .subtitle { color: var(--muted); margin: 0 0 20px; }
+
+  .layout { display: flex; gap: 24px; flex-wrap: wrap; align-items: flex-start; }
+
+  .board-wrap { flex: 1 1 480px; max-width: 560px; }
+  .board {
+    position: relative;
+    aspect-ratio: 1;
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    border: 6px solid #6d4c35;
+    border-radius: 6px;
+    box-shadow: 0 8px 24px rgba(0,0,0,.15);
+    user-select: none;
+  }
+  .sq { position: relative; cursor: pointer; }
+  .sq.light { background: var(--light); }
+  .sq.dark { background: var(--dark); }
+  .sq:hover { filter: brightness(1.08); }
+  .sq.start { box-shadow: inset 0 0 0 4px var(--start); }
+  .sq.end { box-shadow: inset 0 0 0 4px var(--end); }
+  .sq.reach::after {
+    content: "";
+    position: absolute;
+    inset: 38%;
+    border-radius: 50%;
+    background: rgba(0,0,0,.18);
+  }
+  .coord {
+    position: absolute;
+    font-size: 11px;
+    font-weight: 600;
+    opacity: .7;
+    pointer-events: none;
+  }
+  .coord.file { right: 3px; bottom: 1px; }
+  .coord.rank { left: 3px; top: 1px; }
+  .sq.light .coord { color: var(--dark); }
+  .sq.dark .coord { color: var(--light); }
+
+  svg.overlay { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+  .step-badge {
+    position: absolute;
+    width: 22px; height: 22px;
+    margin: 4px;
+    border-radius: 50%;
+    background: var(--path);
+    color: #fff;
+    font-size: 12px;
+    font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+    pointer-events: none;
+    right: 0; top: 0;
+  }
+
+  .piece {
+    position: absolute;
+    width: 12.5%; height: 12.5%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: min(9vw, 52px);
+    line-height: 1;
+    pointer-events: none;
+    transition: left .55s ease-in-out, top .55s ease-in-out;
+    z-index: 5;
+    text-shadow: 0 2px 3px rgba(0,0,0,.35);
+  }
+  .piece.hop { animation: hop .55s ease-in-out; }
+  @keyframes hop {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.35) translateY(-8%); }
+    100% { transform: scale(1); }
+  }
+
+  .panel {
+    flex: 1 1 280px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px;
+  }
+  .panel h2 { font-size: .8rem; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 0 0 10px; }
+  .panel section + section { margin-top: 20px; }
+  .pieces { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+  .pieces button {
+    font: inherit;
+    border: 1px solid var(--border);
+    background: #faf8f4;
+    border-radius: 8px;
+    padding: 6px 0 4px;
+    cursor: pointer;
+    display: flex; flex-direction: column; align-items: center;
+    color: var(--text);
+  }
+  .pieces button span:first-child { font-size: 28px; line-height: 1.1; }
+  .pieces button span:last-child { font-size: 11px; color: var(--muted); }
+  .pieces button[aria-pressed="true"] { border-color: var(--path); background: #e7eef6; }
+
+  .status { min-height: 3em; line-height: 1.5; }
+  .status strong { color: var(--path); }
+  .path-list { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+  .path-list span {
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: #eef1f5;
+    font-weight: 600;
+    font-size: 14px;
+  }
+  .path-list span.active { background: var(--path); color: #fff; }
+  .actions { display: flex; gap: 8px; margin-top: 12px; }
+  .actions button {
+    font: inherit;
+    padding: 6px 14px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: #faf8f4;
+    cursor: pointer;
+  }
+  .actions button:disabled { opacity: .5; cursor: default; }
+  .legend { font-size: 13px; color: var(--muted); line-height: 1.7; }
+  .dot { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: middle; }
+  .error { color: var(--end); }
+</style>
+</head>
+<body>
+<main>
+  <h1>Chess Path Finder</h1>
+  <p class="subtitle">Vyber figuru, klikni na startovní a pak na cílové pole.</p>
+
+  <div class="layout">
+    <div class="board-wrap">
+      <div class="board" id="board">
+        <svg class="overlay" id="overlay" viewBox="0 0 8 8" preserveAspectRatio="none">
+          <defs>
+            <marker id="arrow" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="4" markerHeight="4" orient="auto-start-reverse">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="#2f5d8a"/>
+            </marker>
+          </defs>
+          <g id="lines"></g>
+        </svg>
+      </div>
+    </div>
+
+    <aside class="panel">
+      <section>
+        <h2>Figura</h2>
+        <div class="pieces" id="pieces"></div>
+      </section>
+      <section>
+        <h2>Cesta</h2>
+        <div class="status" id="status">Klikni na startovní pole.</div>
+        <div class="path-list" id="pathList"></div>
+        <div class="actions">
+          <button id="replay" disabled>Přehrát znovu</button>
+          <button id="reset">Vymazat</button>
+        </div>
+      </section>
+      <section class="legend">
+        <div><span class="dot" style="background:var(--start)"></span>start</div>
+        <div><span class="dot" style="background:var(--end)"></span>cíl</div>
+        <div><span class="dot" style="background:rgba(0,0,0,.25);border-radius:50%"></span>kam figura může z aktuálního pole</div>
+      </section>
+    </aside>
+  </div>
+</main>
+
+<script>
+const PIECES = {
+  knight: { symbol: '♞', name: 'Jezdec', moves: [[1,2],[2,1],[2,-1],[1,-2],[-1,-2],[-2,-1],[-2,1],[-1,2]], slide: false },
+  bishop: { symbol: '♝', name: 'Střelec', moves: [[1,1],[1,-1],[-1,-1],[-1,1]], slide: true },
+  rook:   { symbol: '♜', name: 'Věž', moves: [[1,0],[-1,0],[0,1],[0,-1]], slide: true },
+  queen:  { symbol: '♛', name: 'Dáma', moves: [[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,-1],[-1,1]], slide: true },
+  king:   { symbol: '♚', name: 'Král', moves: [[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,-1],[-1,1]], slide: false },
+};
+const STEP_MS = 700;
+
+const board = document.getElementById('board');
+const lines = document.getElementById('lines');
+const statusEl = document.getElementById('status');
+const pathList = document.getElementById('pathList');
+const replayBtn = document.getElementById('replay');
+
+let piece = 'knight';
+let start = null;
+let end = null;
+let path = [];
+let animToken = 0;
+const squares = {};
+
+// Notation helpers: "B3" <-> {x: 1, y: 2}
+const toName = (x, y) => String.fromCharCode(65 + x) + (y + 1);
+const fromName = n => ({ x: n.charCodeAt(0) - 65, y: Number(n[1]) - 1 });
+
+// Board
+for (let y = 7; y >= 0; y--) {
+  for (let x = 0; x < 8; x++) {
+    const sq = document.createElement('div');
+    const name = toName(x, y);
+    sq.className = 'sq ' + ((x + y) % 2 === 0 ? 'dark' : 'light');
+    sq.dataset.name = name;
+    if (y === 0) sq.insertAdjacentHTML('beforeend', `<span class="coord file">${name[0].toLowerCase()}</span>`);
+    if (x === 0) sq.insertAdjacentHTML('beforeend', `<span class="coord rank">${y + 1}</span>`);
+    sq.addEventListener('click', () => onSquareClick(name));
+    board.appendChild(sq);
+    squares[name] = sq;
+  }
+}
+
+const pieceEl = document.createElement('div');
+pieceEl.className = 'piece';
+pieceEl.hidden = true;
+board.appendChild(pieceEl);
+
+// Piece picker
+const piecesEl = document.getElementById('pieces');
+for (const [key, p] of Object.entries(PIECES)) {
+  const b = document.createElement('button');
+  b.innerHTML = `<span>${p.symbol}</span><span>${p.name}</span>`;
+  b.setAttribute('aria-pressed', key === piece);
+  b.addEventListener('click', () => {
+    piece = key;
+    piecesEl.querySelectorAll('button').forEach(btn => btn.setAttribute('aria-pressed', btn === b));
+    pieceEl.textContent = PIECES[piece].symbol;
+    if (start && end) findPath();
+    else if (start) { placePiece(start, false); showReach(start); }
+  });
+  piecesEl.appendChild(b);
+}
+pieceEl.textContent = PIECES[piece].symbol;
+
+function onSquareClick(name) {
+  if (!start || end) {
+    clearAll();
+    start = name;
+    squares[name].classList.add('start');
+    placePiece(name, false);
+    showReach(name);
+    statusEl.textContent = `Start: ${name}. Teď klikni na cílové pole.`;
+  } else if (name !== start) {
+    end = name;
+    squares[name].classList.add('end');
+    findPath();
+  }
+}
+
+async function findPath() {
+  const token = ++animToken;
+  clearPathView();
+  statusEl.textContent = 'Hledám cestu…';
+  try {
+    const res = await fetch(`api.php?piece=${piece}&from=${start}&to=${end}`);
+    const data = await res.json();
+    if (token !== animToken) return;
+    if (data.error) throw new Error(data.error);
+    path = data.path;
+    if (path.length === 0) {
+      statusEl.innerHTML = `<span class="error">${PIECES[piece].name} se z ${start} na ${end} nedostane.</span>`
+        + (piece === 'bishop' ? ' Střelec zůstává na polích jedné barvy.' : '');
+      placePiece(start, false);
+      return;
+    }
+    renderPathList();
+    replayBtn.disabled = false;
+    animate(token);
+  } catch (e) {
+    statusEl.innerHTML = `<span class="error">Chyba: ${e.message}. Běží PHP server (php -S localhost:8000 -t public)?</span>`;
+  }
+}
+
+async function animate(token) {
+  clearPathView(true);
+  placePiece(path[0], false);
+  const moves = path.length - 1;
+  statusEl.innerHTML = `${PIECES[piece].name}: <strong>${moves}</strong> ${moveWord(moves)} z ${start} na ${end}.`;
+  highlightStep(0);
+  for (let i = 1; i < path.length; i++) {
+    await sleep(STEP_MS);
+    if (token !== animToken) return;
+    drawLine(path[i - 1], path[i]);
+    placePiece(path[i], true);
+    addBadge(path[i], i);
+    highlightStep(i);
+    showReach(path[i]);
+  }
+  await sleep(STEP_MS);
+  if (token === animToken) clearReach();
+}
+
+function placePiece(name, hop) {
+  const { x, y } = fromName(name);
+  pieceEl.hidden = false;
+  pieceEl.style.left = (x * 12.5) + '%';
+  pieceEl.style.top = ((7 - y) * 12.5) + '%';
+  if (hop && piece === 'knight') {
+    pieceEl.classList.remove('hop');
+    void pieceEl.offsetWidth; // restart the animation
+    pieceEl.classList.add('hop');
+  }
+}
+
+function drawLine(a, b) {
+  const p = fromName(a), q = fromName(b);
+  const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+  line.setAttribute('x1', p.x + .5);
+  line.setAttribute('y1', 7 - p.y + .5);
+  line.setAttribute('x2', q.x + .5);
+  line.setAttribute('y2', 7 - q.y + .5);
+  line.setAttribute('stroke', '#2f5d8a');
+  line.setAttribute('stroke-width', '.08');
+  line.setAttribute('stroke-linecap', 'round');
+  line.setAttribute('opacity', '.8');
+  line.setAttribute('marker-end', 'url(#arrow)');
+  lines.appendChild(line);
+}
+
+function addBadge(name, n) {
+  const b = document.createElement('div');
+  b.className = 'step-badge';
+  b.textContent = n;
+  squares[name].appendChild(b);
+}
+
+function showReach(name) {
+  clearReach();
+  const { x, y } = fromName(name);
+  for (const [dx, dy] of PIECES[piece].moves) {
+    let nx = x + dx, ny = y + dy;
+    while (nx >= 0 && nx < 8 && ny >= 0 && ny < 8) {
+      squares[toName(nx, ny)].classList.add('reach');
+      if (!PIECES[piece].slide) break;
+      nx += dx; ny += dy;
+    }
+  }
+}
+
+function renderPathList() {
+  pathList.innerHTML = path.map(n => `<span>${n}</span>`).join('');
+}
+
+function highlightStep(i) {
+  [...pathList.children].forEach((el, j) => el.classList.toggle('active', j === i));
+}
+
+function clearReach() {
+  document.querySelectorAll('.sq.reach').forEach(el => el.classList.remove('reach'));
+}
+
+function clearPathView(keepList) {
+  lines.innerHTML = '';
+  document.querySelectorAll('.step-badge').forEach(el => el.remove());
+  clearReach();
+  if (!keepList) { pathList.innerHTML = ''; replayBtn.disabled = true; }
+}
+
+function clearAll() {
+  animToken++;
+  start = end = null;
+  path = [];
+  clearPathView();
+  document.querySelectorAll('.sq.start, .sq.end').forEach(el => el.classList.remove('start', 'end'));
+  pieceEl.hidden = true;
+}
+
+const moveWord = n => n === 1 ? 'tah' : (n >= 2 && n <= 4 ? 'tahy' : 'tahů');
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+replayBtn.addEventListener('click', () => animate(++animToken));
+document.getElementById('reset').addEventListener('click', () => {
+  clearAll();
+  statusEl.textContent = 'Klikni na startovní pole.';
+});
+</script>
+</body>
+</html>
